@@ -1,82 +1,107 @@
-import Head from 'next/head'
+import { useState, useEffect } from "react";
+import { PayPalButtons } from "@paypal/react-paypal-js";
+import {useRouter} from 'next/router'
 
-export default function Home() {
+const CheckoutForm = () => {
+  const [succeeded, setSucceeded] = useState(false);
+  const [error, setError] = useState(null);
+  const [processing, setProcessing] = useState("");
+  const [disabled, setDisabled] = useState(true);
+  const [clientSecret, setClientSecret] = useState("");
+  const [billingDetails, setBillingDetails] = useState({
+    email: "",
+    name: "",
+  });
+  const [paypalErrorMessage, setPaypalErrorMessage] = useState('')
+  const [paypalLoading, setPaypalLoading] = useState('')
+  const [orderID, setOrderID] = useState(false);
+  const router = useRouter();
+
+
+  // handles payments for paypal
+  const createOrder = (data, actions) => {
+    logEvent('Payments', 'Attempted to pay with Paypal');
+    return actions.order
+      .create({
+        purchase_units: [
+          {
+            amount: {
+              value: PAYPAL.AMT,
+            },
+          },
+        ],
+
+        application_context:{
+          shipping_preference: 'NO_SHIPPING'
+        }
+      })
+      .then((orderID) => {
+        setOrderID(orderID);
+        return orderID;
+      });
+  };
+
+  // handles when a payment is confirmed for paypal
+  const onApprove = (data, actions) => {
+    setPaypalLoading(true)
+    return actions.order.capture().then(function (details) {
+      const {
+        name: { given_name },
+        email_address,
+      } = details.payer;
+      // console.log({ given_name, email_address });
+      const data = {name: given_name, email: email_address}
+      // const data = { name: given_name, email: "onedebos@gmail.com" };
+
+      axios
+        .post(HANDLE_PAYPAL_PAYMENT_API, data)
+        .then(() =>{
+          setPaypalLoading(false)
+          saveEmailToLocalStorage(email_address);
+          setSucceeded(true)
+        } )
+        .catch((err) =>{
+          setPaypalLoading(false);
+          setPaypalErrorMessage("Something went wrong while processing your payment.")
+        } );
+    });
+  };
+
+  
+    
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <form
+      id="payment-form"
+      className="flex flex-col m-auto xl:m-0 xl:h-full xl:py-10 h-screen justify-center mx-5 lg:mx-20"
+    >
+      <h1 className="text-gray-800 font-medium mb-5">Pay by card with Paypal</h1>
+      <div className="max-w-md">
 
-      <main className="flex flex-col items-center justify-center flex-1 px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
+      <h1 className="mt-10 mb-2 text-gray-800 font-medium">or with PayPal</h1>
+      <div className="mt-1 max-w-md pb-20">
+        <PayPalButtons
+          style={{
+            color: "blue",
+            shape: "pill",
+            label: "pay",
+            tagline: false,
+            layout: "horizontal",
+          }}
+          createOrder={createOrder}
+          onApprove={onApprove}
+        />
+        {paypalErrorMessage && <p className="text-red-600">{paypalErrorMessage}</p>}
+        {paypalLoading && <p className="text-green-500 text-center font-semibold">Hold on a sec, We're completing your purchase</p>}
+      </div>
 
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="p-3 font-mono text-lg bg-gray-100 rounded-md">
-            pages/index.js
-          </code>
-        </p>
+      <div className="mt-3 text-center">
+          contact <span className="font-semibold">info@mylibrafriends.com</span> for support.
+      </div>
+      </div>
+    </form>
 
-        <div className="flex flex-wrap items-center justify-around max-w-4xl mt-6 sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="p-6 mt-6 text-left border w-96 rounded-xl hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and API.
-            </p>
-          </a>
 
-          <a
-            href="https://nextjs.org/learn"
-            className="p-6 mt-6 text-left border w-96 rounded-xl hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
+  );
+};
 
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="p-6 mt-6 text-left border w-96 rounded-xl hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="p-6 mt-6 text-left border w-96 rounded-xl hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className="flex items-center justify-center w-full h-24 border-t">
-        <a
-          className="flex items-center justify-center"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className="h-4 ml-2" />
-        </a>
-      </footer>
-    </div>
-  )
-}
+export default CheckoutForm;
