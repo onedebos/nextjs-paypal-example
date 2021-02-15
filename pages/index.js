@@ -31,14 +31,20 @@ const CheckoutForm = () => {
       });
   };
 
-  // handles when a payment is confirmed for paypal
+  // handles when a payment is confirmed by paypal
   const onApprove = (data, actions) => {
     return actions.order.capture().then(function (details) {
       const {payer} = details;
       setBillingDetails(payer);
       setSucceeded(true);
-    }).catch(err=> setPaypalErrorMessage("Something went wrong."));
+    })
   };
+
+  // handles when a payment is declined
+  const onError = (data, actions) => {
+    setPaypalErrorMessage("Something went wrong with your payment")
+  };
+  
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
@@ -63,6 +69,7 @@ const CheckoutForm = () => {
             }}
             createOrder={createOrder}
             onApprove={onApprove}
+            onError={onError}
           />
 
           {/* Show an error message on the screen if payment fails */}
@@ -85,6 +92,7 @@ const CheckoutForm = () => {
             </section>
           )}
         </div>
+        
       </main>
 
       <footer className="flex items-center justify-center w-full h-24 border-t">
