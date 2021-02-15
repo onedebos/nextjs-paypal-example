@@ -16,3 +16,9 @@ yarn install
 ```
 
 to install the necessary packages
+
+## Notes
+You'll need to add a CLIENT_ID to the constants file for the PayPal button to show up.
+
+## Live version
+Live version is available [here](http://unruffled-kare-da0f38.netlify.app/)
